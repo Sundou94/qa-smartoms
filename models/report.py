@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List
 from datetime import datetime
 from enum import Enum
 
@@ -28,12 +28,13 @@ class ITSMStory(BaseModel):
     raw: dict = {}
 
 
-class OracleValidationResult(BaseModel):
-    query: str
-    description: str
-    result_count: int
+class CriterionResult(BaseModel):
+    """요구사항 항목 하나에 대한 개별 검증 결과."""
+    criterion: str
     verdict: QAVerdict
-    detail: str = ""
+    evidence: str = ""       # 코드에서 발견한 구현 근거
+    file_path: str = ""      # 관련 파일 경로
+    line_hint: str = ""      # 관련 라인/함수명 힌트
 
 
 class StoryQAResult(BaseModel):
@@ -43,9 +44,9 @@ class StoryQAResult(BaseModel):
     verdict: QAVerdict
     reasoning: str
     code_match_score: float  # 0.0 ~ 1.0
+    criteria_results: List[CriterionResult] = []
     issues: List[str] = []
     suggestions: List[str] = []
-    oracle_validations: List[OracleValidationResult] = []
     analyzed_at: datetime = datetime.now()
 
 

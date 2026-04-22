@@ -19,15 +19,11 @@ class Settings(BaseSettings):
     git_repos_raw: str = Field(..., env="GIT_REPOS")
     itsm_pattern: str = Field(r"(?:ITSM|STRY)-\d+", env="ITSM_PATTERN")
 
-    # Oracle
-    oracle_host: str = Field(..., env="ORACLE_HOST")
-    oracle_port: int = Field(1521, env="ORACLE_PORT")
-    oracle_service: str = Field(..., env="ORACLE_SERVICE")
-    oracle_user: str = Field(..., env="ORACLE_USER")
-    oracle_password: str = Field(..., env="ORACLE_PASSWORD")
-
     # Storage
     report_db_path: str = Field("./data/reports.db", env="REPORT_DB_PATH")
+
+    # QA 가이드 MD 파일 경로 (LLM 컨텍스트 + 웹 에디터)
+    qa_guide_path: str = Field("./qa_guide.md", env="QA_GUIDE_PATH")
 
     # Web
     web_host: str = Field("0.0.0.0", env="WEB_HOST")
@@ -40,10 +36,6 @@ class Settings(BaseSettings):
     @property
     def git_repos(self) -> List[str]:
         return [r.strip() for r in self.git_repos_raw.split(",") if r.strip()]
-
-    @property
-    def oracle_dsn(self) -> str:
-        return f"{self.oracle_host}:{self.oracle_port}/{self.oracle_service}"
 
     class Config:
         env_file = ".env"
