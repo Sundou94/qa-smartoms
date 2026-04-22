@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA SmartOMS Dashboard</title>
+<style>
+  :root {
+    --bg: #f8f9fa; --card: #ffffff; --border: #dee2e6;
+    --pass: #198754; --fail: #dc3545; --warn: #fd7e14; --skip: #6c757d;
+    --primary: #0d6efd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #212529; }
+  header {
+    background: var(--primary); color: #fff; padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 1.4rem; font-weight: 600; }
+  header span { font-size: 0.85rem; opacity: 0.85; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem; text-align: center;
+  }
+  .stat-card .value { font-size: 2.2rem; font-weight: 700; }
+  .stat-card .label { font-size: 0.8rem; color: #6c757d; margin-top: 4px; }
+  .pass-color { color: var(--pass); }
+  .fail-color { color: var(--fail); }
+  .warn-color { color: var(--warn); }
+  .skip-color { color: var(--skip); }
+
+  /* Summary box */
+  .summary-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 4px solid var(--primary); border-radius: 8px;
+    padding: 1.25rem; margin-bottom: 2rem; line-height: 1.6;
+  }
+  .summary-box h3 { margin-bottom: 0.5rem; font-size: 0.9rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Table */
+  .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  th { background: #f1f3f5; padding: 0.75rem 1rem; text-align: left; font-size: 0.82rem; color: #495057; font-weight: 600; border-bottom: 1px solid var(--border); }
+  td { padding: 0.75rem 1rem; font-size: 0.87rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8f9fa; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600;
+  }
+  .badge-pass { background: #d1e7dd; color: var(--pass); }
+  .badge-fail { background: #f8d7da; color: var(--fail); }
+  .badge-warn { background: #ffe5d0; color: var(--warn); }
+  .badge-skip { background: #e9ecef; color: var(--skip); }
+
+  .progress-bar-wrap { background: #e9ecef; border-radius: 4px; height: 8px; width: 120px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+  .progress-bar { height: 100%; border-radius: 4px; background: var(--pass); }
+
+  .no-data { text-align: center; color: #6c757d; padding: 3rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>QA SmartOMS Dashboard</h1>
+  <span>ITSM 요구사항-코드 정합성 자동 검증</span>
+</header>
+<div class="container">
+
+  {% if latest %}
+  <!-- 최신 리포트 요약 -->
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="value">{{ latest.total_stories }}</div>
+      <div class="label">검증 스토리 수</div>
+    </div>
+    <div class="stat-card">
+      <div class="value pass-color">{{ latest.passed }}</div>
+      <div class="label">PASS</div>
+    </div>
+    <div class="stat-card">
+      <div class="value warn-color">{{ latest.warned }}</div>
+      <div class="label">WARNING</div>
+    </div>
+    <div class="stat-card">
+      <div class="value fail-color">{{ latest.failed }}</div>
+      <div class="label">FAIL</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">{{ latest.pass_rate }}%</div>
+      <div class="label">통과율</div>
+    </div>
+  </div>
+
+  {% if latest.summary %}
+  <div class="summary-box">
+    <h3>오늘의 QA 요약</h3>
+    <p>{{ latest.summary }}</p>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- 리포트 목록 -->
+  <div class="section-title">QA 리포트 이력</div>
+  {% if reports %}
+  <table>
+    <thead>
+      <tr>
+        <th>실행 일시</th>
+        <th>스토리 수</th>
+        <th>PASS</th>
+        <th>WARNING</th>
+        <th>FAIL</th>
+        <th>통과율</th>
+        <th>상세</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reports %}
+      <tr>
+        <td>{{ r.run_date[:19].replace("T", " ") }}</td>
+        <td>{{ r.total_stories }}</td>
+        <td class="pass-color">{{ r.passed }}</td>
+        <td class="warn-color">{{ r.warned }}</td>
+        <td class="fail-color">{{ r.failed }}</td>
+        <td>
+          {% set rate = (r.passed / r.total_stories * 100) | round(1) if r.total_stories > 0 else 0 %}
+          {{ rate }}%
+          <span class="progress-bar-wrap">
+            <span class="progress-bar" style="width:{{ rate }}%"></span>
+          </span>
+        </td>
+        <td><a href="/reports/{{ r.report_id }}">보기 →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="no-data">아직 QA 리포트가 없습니다. 스케줄러가 실행된 후 확인하세요.</div>
+  {% endif %}
+
+</div>
+</body>
+</html>
