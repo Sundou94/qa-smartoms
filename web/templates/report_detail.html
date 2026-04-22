@@ -6,15 +6,21 @@
 <title>QA 리포트 상세</title>
 <style>
   :root {
-    --bg: #f8f9fa; --card: #ffffff; --border: #dee2e6;
+    --bg: #f8f9fa; --card: #fff; --border: #dee2e6;
     --pass: #198754; --fail: #dc3545; --warn: #fd7e14; --skip: #6c757d;
     --primary: #0d6efd;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #212529; }
-  header { background: var(--primary); color: #fff; padding: 1rem 2rem; }
-  header h1 { font-size: 1.4rem; font-weight: 600; }
-  header a { color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-bottom: 4px; display: inline-block; }
+
+  nav {
+    background: var(--primary); height: 56px;
+    display: flex; align-items: center; padding: 0 2rem; gap: 2rem;
+  }
+  nav .brand { color: #fff; font-weight: 700; font-size: 1.1rem; text-decoration: none; }
+  nav a { color: rgba(255,255,255,0.85); font-size: .88rem; text-decoration: none; }
+  nav a:hover { color: #fff; }
+
   .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
 
   .meta-bar {
@@ -22,70 +28,88 @@
     padding: 1rem 1.5rem; margin-bottom: 1.5rem;
     display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;
   }
-  .meta-item { font-size: 0.87rem; }
-  .meta-item strong { display: block; font-size: 0.75rem; color: #6c757d; margin-bottom: 2px; }
+  .meta-item { font-size: .87rem; }
+  .meta-item strong { display: block; font-size: .72rem; color: #6c757d; margin-bottom: 2px; }
 
   .summary-box {
     background: var(--card); border: 1px solid var(--border);
     border-left: 4px solid var(--primary); border-radius: 8px;
     padding: 1.25rem; margin-bottom: 2rem; line-height: 1.7;
   }
-  .summary-box h3 { margin-bottom: 0.5rem; font-size: 0.85rem; color: #6c757d; text-transform: uppercase; }
+  .summary-box h3 { font-size: .78rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem; }
 
-  /* Story cards */
+  /* 스토리 카드 */
   .story-card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 8px; margin-bottom: 1.25rem; overflow: hidden;
   }
+  .story-card.verdict-FAIL   { border-left: 4px solid var(--fail); }
+  .story-card.verdict-WARNING { border-left: 4px solid var(--warn); }
+  .story-card.verdict-PASS   { border-left: 4px solid var(--pass); }
+
   .story-header {
-    padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem; display: flex; align-items: center; gap: .75rem;
     cursor: pointer; user-select: none;
   }
   .story-header:hover { background: #f8f9fa; }
-  .story-header .story-id { font-weight: 700; font-size: 0.95rem; }
-  .story-header .story-title { color: #495057; font-size: 0.87rem; flex: 1; }
-  .story-header .score { font-size: 0.82rem; color: #6c757d; }
+  .story-id { font-weight: 700; font-size: .95rem; white-space: nowrap; }
+  .story-title { color: #495057; font-size: .87rem; flex: 1; }
+  .score-bar-wrap { background: #e9ecef; border-radius: 4px; height: 6px; width: 80px; }
+  .score-bar { height: 100%; border-radius: 4px; background: var(--pass); }
+  .score-label { font-size: .8rem; color: #6c757d; white-space: nowrap; }
+  .toggle-arrow { font-size: .75rem; color: #adb5bd; margin-left: .5rem; }
+
   .story-body { padding: 1.25rem; border-top: 1px solid var(--border); display: none; }
   .story-body.open { display: block; }
 
   .section { margin-bottom: 1.25rem; }
-  .section h4 { font-size: 0.82rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .section:last-child { margin-bottom: 0; }
+  .section h4 { font-size: .75rem; text-transform: uppercase; color: #6c757d; letter-spacing: .05em; margin-bottom: .6rem; }
 
-  .reasoning { line-height: 1.6; font-size: 0.9rem; }
-  .list-items { list-style: disc; padding-left: 1.25rem; }
-  .list-items li { font-size: 0.87rem; line-height: 1.6; }
-  .list-items li + li { margin-top: 2px; }
+  .reasoning { line-height: 1.65; font-size: .9rem; }
 
-  /* Commits */
-  .commit-chip {
-    display: inline-block; background: #e9ecef; border-radius: 4px;
-    padding: 2px 8px; font-family: monospace; font-size: 0.8rem;
-    margin: 2px;
+  /* 기준 항목 테이블 */
+  .criteria-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  .criteria-table th {
+    background: #f8f9fa; padding: 6px 10px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600;
   }
+  .criteria-table td { padding: 7px 10px; border: 1px solid var(--border); vertical-align: top; }
+  .criteria-table tr:hover td { background: #fafafa; }
+  .evidence-text { color: #495057; line-height: 1.4; }
+  .file-hint { font-family: monospace; font-size: .78rem; color: #6c757d; margin-top: 3px; }
 
-  /* Oracle */
-  .oracle-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  .oracle-table th { background: #f1f3f5; padding: 6px 10px; text-align: left; border: 1px solid var(--border); }
-  .oracle-table td { padding: 6px 10px; border: 1px solid var(--border); }
-  .oracle-table code { font-size: 0.78rem; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
+  /* 커밋 */
+  .commit-row { display: flex; align-items: baseline; gap: .5rem; margin-bottom: 5px; }
+  .commit-hash { font-family: monospace; background: #e9ecef; border-radius: 3px; padding: 1px 6px; font-size: .78rem; }
+  .commit-msg  { font-size: .83rem; color: #343a40; }
+  .commit-meta { font-size: .76rem; color: #adb5bd; white-space: nowrap; }
+
+  /* 이슈/제안 목록 */
+  .issue-list { list-style: none; }
+  .issue-list li { padding: 5px 0 5px 1.2rem; position: relative; font-size: .86rem; line-height: 1.5; }
+  .issue-list li::before { content: "•"; position: absolute; left: 0; color: var(--fail); }
+  .suggest-list li::before { color: var(--primary); content: "→"; }
 
   .badge {
-    display: inline-block; padding: 2px 10px; border-radius: 20px;
-    font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: .72rem; font-weight: 700; white-space: nowrap;
   }
-  .badge-PASS { background: #d1e7dd; color: var(--pass); }
-  .badge-FAIL { background: #f8d7da; color: var(--fail); }
+  .badge-PASS    { background: #d1e7dd; color: var(--pass); }
+  .badge-FAIL    { background: #f8d7da; color: var(--fail); }
   .badge-WARNING { background: #ffe5d0; color: var(--warn); }
-  .badge-SKIP { background: #e9ecef; color: var(--skip); }
+  .badge-SKIP    { background: #e9ecef; color: var(--skip); }
 
-  .back-link { display: inline-block; margin-bottom: 1.5rem; color: var(--primary); font-size: 0.87rem; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-<header>
-  <a href="/">← 목록으로</a>
-  <h1>QA 리포트 상세</h1>
-</header>
+<nav>
+  <a class="brand" href="/">QA SmartOMS</a>
+  <a href="/">리포트</a>
+  <a href="/qa-guide">QA 가이드</a>
+</nav>
 <div class="container">
 
   <div class="meta-bar">
@@ -105,18 +129,22 @@
   {% endif %}
 
   {% if not report.results %}
-  <div style="text-align:center;color:#6c757d;padding:3rem">검증된 스토리가 없습니다.</div>
+  <p style="text-align:center;color:#6c757d;padding:3rem">검증된 스토리가 없습니다.</p>
   {% endif %}
 
-  {% for result in report.results | sort(attribute='verdict') %}
-  <div class="story-card">
+  {% set order = {"FAIL": 0, "WARNING": 1, "PASS": 2, "SKIP": 3} %}
+  {% for result in report.results | sort(attribute=lambda r: order.get(r.verdict.value, 9)) %}
+  <div class="story-card verdict-{{ result.verdict.value }}">
     <div class="story-header" onclick="toggle(this)">
       <span class="story-id">{{ result.story_id }}</span>
       <span class="badge badge-{{ result.verdict.value }}">{{ result.verdict.value }}</span>
       <span class="story-title">{{ result.story_title }}</span>
-      <span class="score">매칭률 {{ (result.code_match_score * 100) | round(0) | int }}%</span>
-      <span>▼</span>
+      {% set pct = (result.code_match_score * 100) | round | int %}
+      <span class="score-label">{{ pct }}%</span>
+      <div class="score-bar-wrap"><div class="score-bar" style="width:{{ pct }}%"></div></div>
+      <span class="toggle-arrow">▼</span>
     </div>
+
     <div class="story-body">
 
       <!-- 분석 근거 -->
@@ -125,59 +153,70 @@
         <p class="reasoning">{{ result.reasoning }}</p>
       </div>
 
-      <!-- 관련 커밋 -->
-      {% if result.commits %}
+      <!-- 요구사항 항목별 검증 -->
+      {% if result.criteria_results %}
       <div class="section">
-        <h4>관련 커밋 ({{ result.commits | length }}건)</h4>
-        {% for c in result.commits %}
-        <div style="margin-bottom:6px">
-          <span class="commit-chip">{{ c.commit_hash }}</span>
-          <span style="font-size:0.83rem;color:#495057">{{ c.message[:80] }}</span>
-          <span style="font-size:0.78rem;color:#adb5bd;margin-left:8px">{{ c.author }} · {{ c.repo }}</span>
-        </div>
-        {% endfor %}
+        <h4>요구사항 항목별 검증 ({{ result.criteria_results | length }}개)</h4>
+        <table class="criteria-table">
+          <thead>
+            <tr>
+              <th style="width:40%">검증 항목</th>
+              <th style="width:8%">결과</th>
+              <th>근거 · 위치</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cr in result.criteria_results %}
+            <tr>
+              <td>{{ cr.criterion }}</td>
+              <td><span class="badge badge-{{ cr.verdict.value }}">{{ cr.verdict.value }}</span></td>
+              <td>
+                <div class="evidence-text">{{ cr.evidence }}</div>
+                {% if cr.file_path or cr.line_hint %}
+                <div class="file-hint">
+                  {% if cr.file_path %}{{ cr.file_path }}{% endif %}
+                  {% if cr.line_hint %} · {{ cr.line_hint }}{% endif %}
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
       {% endif %}
 
-      <!-- 이슈 -->
+      <!-- 컨벤션 이슈 -->
       {% if result.issues %}
       <div class="section">
-        <h4>발견된 이슈</h4>
-        <ul class="list-items">
+        <h4>컨벤션 · 안티패턴 이슈 ({{ result.issues | length }}건)</h4>
+        <ul class="issue-list">
           {% for issue in result.issues %}<li>{{ issue }}</li>{% endfor %}
         </ul>
       </div>
       {% endif %}
 
-      <!-- 제안사항 -->
+      <!-- 개선 제안 -->
       {% if result.suggestions %}
       <div class="section">
         <h4>개선 제안</h4>
-        <ul class="list-items">
+        <ul class="issue-list suggest-list">
           {% for s in result.suggestions %}<li>{{ s }}</li>{% endfor %}
         </ul>
       </div>
       {% endif %}
 
-      <!-- Oracle 검증 -->
-      {% if result.oracle_validations %}
+      <!-- 관련 커밋 -->
+      {% if result.commits %}
       <div class="section">
-        <h4>Oracle DB 검증 결과</h4>
-        <table class="oracle-table">
-          <thead>
-            <tr><th>설명</th><th>결과</th><th>건수</th><th>상세</th></tr>
-          </thead>
-          <tbody>
-            {% for ov in result.oracle_validations %}
-            <tr>
-              <td>{{ ov.description }}</td>
-              <td><span class="badge badge-{{ ov.verdict.value }}">{{ ov.verdict.value }}</span></td>
-              <td>{{ ov.result_count }}</td>
-              <td>{{ ov.detail }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <h4>관련 커밋 ({{ result.commits | length }}건)</h4>
+        {% for c in result.commits %}
+        <div class="commit-row">
+          <span class="commit-hash">{{ c.commit_hash }}</span>
+          <span class="commit-msg">{{ c.message[:90] }}</span>
+          <span class="commit-meta">{{ c.author }} · {{ c.repo }}</span>
+        </div>
+        {% endfor %}
       </div>
       {% endif %}
 
@@ -189,17 +228,13 @@
 <script>
 function toggle(header) {
   const body = header.nextElementSibling;
-  const arrow = header.querySelector('span:last-child');
+  const arrow = header.querySelector('.toggle-arrow');
   body.classList.toggle('open');
   arrow.textContent = body.classList.contains('open') ? '▲' : '▼';
 }
-// FAIL/WARNING 항목은 기본 펼침
-document.querySelectorAll('.story-header').forEach(h => {
-  const badge = h.querySelector('.badge');
-  if (badge && (badge.textContent === 'FAIL' || badge.textContent === 'WARNING')) {
-    toggle(h);
-  }
-});
+// FAIL/WARNING 자동 펼침
+document.querySelectorAll('.story-card.verdict-FAIL .story-header, .story-card.verdict-WARNING .story-header')
+  .forEach(h => toggle(h));
 </script>
 </body>
 </html>

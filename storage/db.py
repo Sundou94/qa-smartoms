@@ -1,12 +1,13 @@
 import json
 import sqlite3
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 from config import settings
-from models.report import QAReport, StoryQAResult, QAVerdict, CommitInfo, OracleValidationResult
+from models.report import (
+    QAReport, StoryQAResult, CriterionResult, QAVerdict, CommitInfo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,34 +28,34 @@ def get_conn() -> sqlite3.Connection:
 def _init_schema(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS qa_reports (
-            report_id   TEXT PRIMARY KEY,
-            run_date    TEXT NOT NULL,
+            report_id     TEXT PRIMARY KEY,
+            run_date      TEXT NOT NULL,
             total_stories INTEGER,
-            passed      INTEGER,
-            failed      INTEGER,
-            warned      INTEGER,
-            skipped     INTEGER,
-            summary     TEXT,
-            created_at  TEXT DEFAULT (datetime('now'))
+            passed        INTEGER,
+            failed        INTEGER,
+            warned        INTEGER,
+            skipped       INTEGER,
+            summary       TEXT,
+            created_at    TEXT DEFAULT (datetime('now'))
         );
 
         CREATE TABLE IF NOT EXISTS story_results (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            report_id   TEXT NOT NULL REFERENCES qa_reports(report_id),
-            story_id    TEXT NOT NULL,
-            story_title TEXT,
-            verdict     TEXT,
-            reasoning   TEXT,
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id        TEXT NOT NULL REFERENCES qa_reports(report_id),
+            story_id         TEXT NOT NULL,
+            story_title      TEXT,
+            verdict          TEXT,
+            reasoning        TEXT,
             code_match_score REAL,
-            issues_json TEXT,
+            criteria_json    TEXT,
+            issues_json      TEXT,
             suggestions_json TEXT,
-            commits_json TEXT,
-            oracle_json TEXT,
-            analyzed_at TEXT
+            commits_json     TEXT,
+            analyzed_at      TEXT
         );
 
         CREATE INDEX IF NOT EXISTS idx_story_report ON story_results(report_id);
-        CREATE INDEX IF NOT EXISTS idx_report_date ON qa_reports(run_date);
+        CREATE INDEX IF NOT EXISTS idx_report_date  ON qa_reports(run_date);
     """)
     conn.commit()
 
@@ -85,7 +86,7 @@ def save_report(report: QAReport) -> None:
                 """
                 INSERT INTO story_results
                 (report_id, story_id, story_title, verdict, reasoning, code_match_score,
-                 issues_json, suggestions_json, commits_json, oracle_json, analyzed_at)
+                 criteria_json, issues_json, suggestions_json, commits_json, analyzed_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -95,6 +96,10 @@ def save_report(report: QAReport) -> None:
                     result.verdict.value,
                     result.reasoning,
                     result.code_match_score,
+                    json.dumps(
+                        [c.model_dump(mode="json") for c in result.criteria_results],
+                        ensure_ascii=False,
+                    ),
                     json.dumps(result.issues, ensure_ascii=False),
                     json.dumps(result.suggestions, ensure_ascii=False),
                     json.dumps(
@@ -102,16 +107,12 @@ def save_report(report: QAReport) -> None:
                         ensure_ascii=False,
                         default=str,
                     ),
-                    json.dumps(
-                        [v.model_dump(mode="json") for v in result.oracle_validations],
-                        ensure_ascii=False,
-                    ),
                     result.analyzed_at.isoformat(),
                 ),
             )
 
         conn.commit()
-        logger.info(f"Report {report.report_id} saved to DB")
+        logger.info(f"Report {report.report_id} saved")
     except Exception as e:
         conn.rollback()
         logger.error(f"Failed to save report: {e}")
@@ -141,8 +142,8 @@ def get_report(report_id: str) -> QAReport | None:
 
     results = []
     for sr in story_rows:
-        commits_raw = json.loads(sr["commits_json"] or "[]")
-        oracle_raw = json.loads(sr["oracle_json"] or "[]")
+        criteria_raw = json.loads(sr["criteria_json"] or "[]")
+        commits_raw  = json.loads(sr["commits_json"]  or "[]")
         results.append(
             StoryQAResult(
                 story_id=sr["story_id"],
@@ -150,10 +151,10 @@ def get_report(report_id: str) -> QAReport | None:
                 verdict=QAVerdict(sr["verdict"]),
                 reasoning=sr["reasoning"] or "",
                 code_match_score=sr["code_match_score"] or 0.0,
+                criteria_results=[CriterionResult(**c) for c in criteria_raw],
                 issues=json.loads(sr["issues_json"] or "[]"),
                 suggestions=json.loads(sr["suggestions_json"] or "[]"),
                 commits=[CommitInfo(**c) for c in commits_raw],
-                oracle_validations=[OracleValidationResult(**o) for o in oracle_raw],
                 analyzed_at=datetime.fromisoformat(sr["analyzed_at"]),
             )
         )
